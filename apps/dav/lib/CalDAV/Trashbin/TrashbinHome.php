@@ -36,6 +36,37 @@ class TrashbinHome implements IACL, ICollection, IProperties {
 		return $this->principalInfo['uri'];
 	}
 
+	/**
+	 * Returns the list of ACEs for this node.
+	 *
+	 * The trashbin is private to the calendar owner. Calendar delegates
+	 * (calendar-proxy-write and calendar-proxy-read group principals) receive
+	 * read-only access so that a depth-1 PROPFIND on the delegated calendar
+	 * home can enumerate this node without throwing a NotFound error. They
+	 * cannot create, delete or restore items because no write privilege is
+	 * granted here, and the children of the trashbin carry their own strict
+	 * owner-only ACLs.
+	 */
+	public function getACL(): array {
+		return [
+			[
+				'privilege' => '{DAV:}all',
+				'principal' => $this->getOwner(),
+				'protected' => true,
+			],
+			[
+				'privilege' => '{DAV:}read',
+				'principal' => $this->getOwner() . '/calendar-proxy-write',
+				'protected' => true,
+			],
+			[
+				'privilege' => '{DAV:}read',
+				'principal' => $this->getOwner() . '/calendar-proxy-read',
+				'protected' => true,
+			],
+		];
+	}
+
 	public function createFile($name, $data = null) {
 		throw new Forbidden('Permission denied to create files in the trashbin');
 	}
